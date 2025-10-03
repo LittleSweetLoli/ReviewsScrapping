@@ -4,10 +4,22 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from datetime import timedelta, datetime, timezone
 from config import Config
 from scraper import fetch_reviews  # Импорт вашего модуля
+from celery import Celery
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Инициализация Celery
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        broker='redis://localhost:6379/0',
+        backend='redis://localhost:6379/0'
+    )
+    celery.conf.update(app.config)
+    return celery
+
+celery = make_celery(app)
 jwt = JWTManager(app)
 
 client = MongoClient(app.config['MONGODB_URI'])
@@ -80,7 +92,7 @@ def get_reviews(org_id):
     return jsonify({
         'reviews': org['reviews'],
         'last_updated': org['last_updated'].isoformat(),
-        'average_rating': sum(r['rating'] for r in org['reviews']) / len(org['reviews']) if org['reviews'] else 0
+        'average_rating': sum(float(r['rating']) for r in org['reviews']) / len(org['reviews']) if org['reviews'] else 0
     }), 200
 
 if __name__ == '__main__':
