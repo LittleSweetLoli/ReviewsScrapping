@@ -1,0 +1,3 @@
+web: poetry run gunicorn app:app --bind 0.0.0.0:$PORT
+worker: poetry run celery -A tasks worker --loglevel=info
+beat: poetry run celery -A tasks beat --loglevel=info

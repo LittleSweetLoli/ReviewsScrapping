@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Backend: Flask API + Widget
+  backend:
+    build: ./backend  # Dockerfile в backend/
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}  # Из .env
+      - MONGODB_URI=mongodb://mongo:27017/reviews_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - ./backend:/app  # Для hot-reload локально
+
+  # Celery Worker
+  celery-worker:
+    build: ./backend
+    command: celery -A tasks worker --loglevel=info -P solo
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - MONGODB_URI=mongodb://mongo:27017/reviews_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - backend
+      - redis
+
+  # Celery Beat (scheduler)
+  celery-beat:
+    build: ./backend
+    command: celery -A tasks beat --loglevel=info
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - MONGODB_URI=mongodb://mongo:27017/reviews_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - backend
+      - redis
+
+  # Frontend: React (dev mode; для prod — nginx)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Hot-reload
+    depends_on:
+      - backend
+
+  # Redis (ваш существующий)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data  # Persistence
+
+  # MongoDB (ваш существующий)
+  mongo:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  redis_data:
+  mongo_data:
