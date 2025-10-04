@@ -15,7 +15,8 @@ dependencies = [
     "flask-jwt-extended (>=4.7.1,<5.0.0)",
     "python-dotenv (>=1.1.1,<2.0.0)",
     "celery (>=5.5.3,<6.0.0)",
-    "redis (>=6.4.0,<7.0.0)"
+    "redis (>=6.4.0,<7.0.0)",
+    "flask-cors (>=6.0.1,<7.0.0)"
 ]
 
 
