@@ -3,30 +3,32 @@ version: '3.8'
 services:
   # Backend: Flask API + Widget
   backend:
-    build: ./backend  # Dockerfile в backend/
+    build: ./backend
     ports:
       - "5000:5000"
     environment:
       - SECRET_KEY=${SECRET_KEY}  # Из .env
-      - MONGODB_URI=mongodb://mongo:27017/reviews_db
-      - REDIS_URL=redis://redis:6379/0
+      - MONGODB_URI=mongodb://mongo:27017/reviews_db  # Имя сервиса mongo
+      - REDIS_URL=redis://redis:6379/0  # Имя сервиса redis
     depends_on:
       - mongo
       - redis
     volumes:
-      - ./backend:/app  # Для hot-reload локально
+      - ./backend:/app  # Hot-reload локально
 
   # Celery Worker
   celery-worker:
     build: ./backend
-    command: celery -A tasks worker --loglevel=info -P solo
+    command: celery -A tasks worker --loglevel=info -P solo  # -P solo для Docker
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - MONGODB_URI=mongodb://mongo:27017/reviews_db
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0  # Фикс: redis сервис
     depends_on:
       - backend
       - redis
+    volumes:
+      - ./backend:/app
 
   # Celery Beat (scheduler)
   celery-beat:
@@ -35,33 +37,36 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - MONGODB_URI=mongodb://mongo:27017/reviews_db
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0  # Фикс: redis сервис
     depends_on:
       - backend
       - redis
+    volumes:
+      - ./backend:/app
 
-  # Frontend: React (dev mode; для prod — nginx)
+  # Frontend: React (dev mode)
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://backend:5000
+      - REACT_APP_API_URL=http://backend:5000  # Internal: имя сервиса backend
     volumes:
       - ./frontend:/app
       - /app/node_modules  # Hot-reload
     depends_on:
       - backend
 
-  # Redis (ваш существующий)
+  # Redis
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data  # Persistence
+      - redis_data:/data
+    command: redis-server --appendonly yes  # Persistence
 
-  # MongoDB (ваш существующий)
+  # MongoDB
   mongo:
     image: mongo:7.0
     ports:

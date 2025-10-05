@@ -4,13 +4,15 @@ from datetime import datetime
 from scraper import fetch_reviews  # Ваш скрапинг-модуль
 from config import Config
 from celeryconfig import beat_schedule 
+import os
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Инициализация Celery
-app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+app = Celery('tasks', broker=redis_url, backend=redis_url)
 
 # Настройка Celery
 app.conf.update(

@@ -31,4 +31,4 @@ def fetch_reviews(org_id):
     
     return reviews
 
-fetch_reviews("1297472925")
+#fetch_reviews("1297472925")
